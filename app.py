@@ -1,0 +1,1 @@
+from main_folder import __main__
