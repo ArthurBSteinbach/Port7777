@@ -21,7 +21,7 @@ class App(ctk.CTk):
         
     def config_root(self):
         self.configure(fg_color="#635985") 
-
+        self.title("Port777 Main")
     def _centralize_window(self):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -50,7 +50,7 @@ class App(ctk.CTk):
     def send_server_ip(self):
         self.server_ip = self.main_frame_entry.get()
         self.username = self.main_frame_username_entry.get()
-        if not self.server_ip or "." not in self.server_ip or not self.username:
+        if not self.server_ip or "." not in self.server_ip or not self.username or ["admin","adm","administrador","administrator"] in self.username:
             self.main_frame_entry.configure(placeholder_text="Error, try again")
             self.main_frame_entry.delete(0, ctk.END)
             self.main_frame_button.configure(fg_color="#CD1818")
@@ -65,7 +65,7 @@ class App(ctk.CTk):
         self.chat_frame = ctk.CTkFrame(self, fg_color="#393053")
         self.chat_frame.pack(pady=self.window_height//7)
 
-        self.chat_label = ctk.CTkLabel(self.chat_frame, width=self.window_width//2, height=self.window_height//2, font=("Terminal", 16), text="", anchor="nw", justify="left")
+        self.chat_label = ctk.CTkLabel(self.chat_frame, width=self.window_width//2, height=self.window_height//2, font=("Terminal", 16), text="", anchor="nw", justify="left",text_color="white")
         self.chat_label.grid(row=0, column=0, pady=15, padx=20)
 
         self.chat_entry = ctk.CTkEntry(self.chat_frame, placeholder_text="Type your message", border_color="black", fg_color="white", width=290, font=("Terminal", 16))
@@ -78,8 +78,9 @@ class App(ctk.CTk):
 
     def connect_to_server(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+        
         try:
+            self.title(f"Port7777 {self.server_ip} Chat")
             self.client.connect((self.server_ip, self.server_port))
             print("Conectado ao servidor!")
 
@@ -89,8 +90,8 @@ class App(ctk.CTk):
             thread = threading.Thread(target=self.receive_messages)
             thread.daemon = True  
             thread.start()
-
-        except Exception as e:
+            
+        except Exception as e:  
             print(f"Erro ao conectar: {e}")
             self.send_server_ip()
             
@@ -100,12 +101,12 @@ class App(ctk.CTk):
                 msg = self.client.recv(2048).decode('utf-8')
                 if msg:
                     if msg == "!clear":
-                        self.chat_label.configure(text="")  # Limpa o chat
+                        self.chat_label.configure(text="")  
                     elif msg.startswith("!kick"):
                         if msg.split(" ")[1] == self.username:
                             self.client.close()
                             self.destroy()
-                            sys.exit()  # Fecha o aplicativo
+                            sys.exit() 
                     else:
                         self.chat_label.configure(text=self.chat_label.cget("text") + f"{msg}\n")
                 else:
@@ -121,7 +122,7 @@ class App(ctk.CTk):
             if message.startswith("!"):
                 self.handle_command(message)
             else:
-                full_message = f"{self.username}: {message}"
+                full_message = f"{message}"
                 self.chat_label.configure(text=self.chat_label.cget("text") + f"{full_message}\n")
                 self.chat_entry.delete(0, ctk.END)  
                 try:
@@ -157,8 +158,10 @@ class App(ctk.CTk):
             self.chat_label.configure(text=self.chat_label.cget("text") + "Comando desconhecido.\n")
 
     def is_admin(self):
-        ip_user = self.get_local_ip()
-        return self.server_ip == ip_user
+        user_ip = self.get_local_ip()
+        if self.server_ip == user_ip:
+            self.username = f"{self.username} [ADMIN]"
+        return self.server_ip == user_ip
 
     def get_local_ip(self):
         try:
