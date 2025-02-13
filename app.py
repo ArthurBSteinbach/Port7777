@@ -1,1 +1,2 @@
-from main_folder import __main__
+from main_folder import __init__
+
