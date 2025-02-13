@@ -14,6 +14,7 @@ class App(ctk.CTk):
         self.server_port = 7777
         self.username = None
         self.rank = None
+        self.user_list = []  # Lista de usuários online
 
         self.enter_server_frame()
 
@@ -143,8 +144,8 @@ class App(ctk.CTk):
         self.users_scrollable_frame = ctk.CTkScrollableFrame(self.users_frame, fg_color="#393053")
         self.users_scrollable_frame.pack(expand=True, fill="both", padx=10, pady=10)
 
-        # Exemplo de como adicionar usuários à lista
-        self.update_user_list(["User1", "User2", "User3"])
+        # Inicializa a lista de usuários
+        self.update_user_list(self.user_list)
 
     def update_user_list(self, users):
         for widget in self.users_scrollable_frame.winfo_children():
@@ -170,7 +171,11 @@ class App(ctk.CTk):
             self.is_admin()
             full_username = f"{self.username} {self.rank}"
             
+            # Envia o nome do usuário para o servidor
             self.client.send(full_username.encode('utf-8'))
+
+            # Solicita a lista de usuários ao conectar
+            self.client.send("!users".encode('utf-8'))
 
             thread = threading.Thread(target=self.receive_messages)
             thread.daemon = True  
@@ -208,12 +213,25 @@ class App(ctk.CTk):
                         self.client.close()
                         self.destroy()
                         sys.exit()
+                    elif msg.startswith("!users:"):
+                        # Atualiza a lista de usuários
+                        users = msg.split(":")[1].split(",")
+                        self.user_list = users
+                        self.update_user_list(self.user_list)
+                    elif msg.startswith("!join:"):
+                        # Novo usuário entrou no chat
+                        new_user = msg.split(":")[1]
+                        self.chat_label.configure(text=self.chat_label.cget("text") + f"\n**{new_user} entrou no chat**\n", text_color="white")
+                        # Atualiza a lista de usuários
+                        if new_user not in self.user_list:
+                            self.user_list.append(new_user)
+                            self.update_user_list(self.user_list)
                     else:
                         if " [ADMIN]" in msg:
                             username_part, message_part = msg.split(":", 1)
                             username, rank = username_part.split(" [ADMIN]")
                             formatted_message = f"{username} [ADMIN]:{message_part}"
-                            self.chat_label.configure(text=self.chat_label.cget("text") + f"\n{formatted_message}\n", text_color="white")
+                            self.chat_label.configure(text=self.chat_label.cget("text") + f"\n{formatted_message}\n", text_color="red")
                         else:
                             self.chat_label.configure(text=self.chat_label.cget("text") + f"\n{msg}\n", text_color="white")
                 else:
