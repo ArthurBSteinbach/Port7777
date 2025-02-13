@@ -3,6 +3,7 @@ import socket
 
 clients = []
 banned_ips = set()  # Conjunto para armazenar IPs banidos
+usernames = {}  # Dicionário para armazenar os nomes de usuário associados aos clientes
 
 def get_local_ip():
     try:
@@ -23,9 +24,14 @@ if not ip_user:
 print(f"Seu IP é: {ip_user}")
 
 def handle_client(client, addr):
-    full_username = client.recv(2048).decode('utf-8')  # Recebe o nome de usuário e o cargo
-    while True:
-        try:
+    try:
+        # Recebe o nome de usuário e o cargo
+        full_username = client.recv(2048).decode('utf-8')
+        usernames[client] = full_username  # Armazena o nome de usuário associado ao cliente
+        broadcast(f"!join:{full_username}".encode('utf-8'), client)  # Notifica que um novo usuário entrou
+        update_user_list()  # Atualiza a lista de usuários para todos os clientes
+
+        while True:
             msg = client.recv(2048)
             if not msg:
                 break  
@@ -34,10 +40,10 @@ def handle_client(client, addr):
                 handle_command(msg, client, addr)
             else:
                 broadcast(f"{full_username}: {msg}".encode('utf-8'), client)  # Envia o nome de usuário e o cargo
-        except Exception as e:
-            print(f"Erro ao receber mensagem: {e}")
-            break
-    remove_client(client)
+    except Exception as e:
+        print(f"Erro ao receber mensagem: {e}")
+    finally:
+        remove_client(client)
 
 def broadcast(msg, sender):
     for client in clients:
@@ -51,7 +57,20 @@ def broadcast(msg, sender):
 def remove_client(client):
     if client in clients:
         clients.remove(client)
+        if client in usernames:
+            username = usernames[client]
+            del usernames[client]
+            broadcast(f"!leave:{username}".encode('utf-8'), client)  # Notifica que um usuário saiu
+            update_user_list()  # Atualiza a lista de usuários para todos os clientes
         print(f"Cliente desconectado. Total de clientes: {len(clients)}")
+
+def update_user_list():
+    user_list = ",".join(usernames.values())
+    for client in clients:
+        try:
+            client.send(f"!users:{user_list}".encode('utf-8'))
+        except Exception as e:
+            print(f"Erro ao enviar lista de usuários: {e}")
 
 def handle_command(command, client, addr):
     global banned_ips
@@ -107,4 +126,4 @@ def main():
         except Exception as e:
             print(f"Erro ao aceitar conexão: {e}")
 
-main()  
+main()
