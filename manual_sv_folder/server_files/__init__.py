@@ -25,11 +25,13 @@ print(f"Seu IP é: {ip_user}")
 
 def handle_client(client, addr):
     try:
-        # Recebe o nome de usuário e o cargo
         full_username = client.recv(2048).decode('utf-8')
-        usernames[client] = full_username  # Armazena o nome de usuário associado ao cliente
-        broadcast(f"!join:{full_username}".encode('utf-8'), client)  # Notifica que um novo usuário entrou
-        update_user_list()  # Atualiza a lista de usuários para todos os clientes
+        usernames[client] = full_username 
+        broadcast(f"!join:{full_username}".encode('utf-8'), client)  
+        update_user_list()  
+
+        # Envia uma mensagem de boas-vindas ao usuário
+        client.send(f"Bem-vindo, {full_username}!".encode('utf-8'))
 
         while True:
             msg = client.recv(2048)
@@ -39,7 +41,7 @@ def handle_client(client, addr):
             if msg.startswith("!"):
                 handle_command(msg, client, addr)
             else:
-                broadcast(f"{full_username}: {msg}".encode('utf-8'), client)  # Envia o nome de usuário e o cargo
+                broadcast(f"{full_username}: {msg}".encode('utf-8'), client)  
     except Exception as e:
         print(f"Erro ao receber mensagem: {e}")
     finally:
@@ -60,8 +62,9 @@ def remove_client(client):
         if client in usernames:
             username = usernames[client]
             del usernames[client]
-            broadcast(f"!leave:{username}".encode('utf-8'), client)  # Notifica que um usuário saiu
-            update_user_list()  # Atualiza a lista de usuários para todos os clientes
+            broadcast(f"!leave:{username}".encode('utf-8'), client) 
+            update_user_list()  
+        client.close()  
         print(f"Cliente desconectado. Total de clientes: {len(clients)}")
 
 def update_user_list():
@@ -76,24 +79,28 @@ def handle_command(command, client, addr):
     global banned_ips
     if command == "!cls":
         for c in clients:
-            c.send("!clear".encode('utf-8'))  # Envia o comando para limpar o chat
+            c.send("!clear".encode('utf-8')) 
+
     elif command.startswith("!kick"):
         username = command.split(" ")[1]
+        broadcast(f"IP {username} kickado.".encode('utf-8'), client)
         for c in clients:
-            c.send(f"!kick {username}".encode('utf-8'))  # Envia o comando para expulsar o usuário
+            c.send(f"!kick {username}".encode('utf-8'))  
+
     elif command.startswith("!ban"):
         parts = command.split(" ")
         if len(parts) > 1:
             username = parts[1]
             for c in clients:
-                c.send(f"!ban {username}".encode('utf-8'))  # Envia o comando para banir o usuário
-            # Adiciona o IP do usuário banido à lista de IPs banidos
+                c.send(f"!ban {username}".encode('utf-8'))  
             banned_ips.add(addr[0])
             print(f"IP {addr[0]} foi banido.")
+
     elif command.startswith("!unbanip"):
         ip = command.split(" ")[1]
         banned_ips.discard(ip)
         broadcast(f"IP {ip} foi desbanido.".encode('utf-8'), client)
+
     else:
         client.send("Comando desconhecido.".encode('utf-8'))
 
@@ -113,8 +120,8 @@ def main():
     while True:
         try:
             client, addr = server.accept()
-            if addr[0] in banned_ips:  # Verifica se o IP está banido
-                client.send("!banned".encode('utf-8'))  # Envia comando de banimento
+            if addr[0] in banned_ips:  
+                client.send("!banned".encode('utf-8'))  
                 client.close()
                 print(f"Conexão rejeitada: IP {addr[0]} está banido.")
             else:
@@ -126,4 +133,5 @@ def main():
         except Exception as e:
             print(f"Erro ao aceitar conexão: {e}")
 
-main()
+if __name__ == "__main__":
+    main()

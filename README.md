@@ -1,6 +1,6 @@
 # README.md
 
-## Instruções
+## Instruções : PORT7777_1.6v
 
 ### Como rodar o aplicativo?
 (Requisitos: Windows, Python, Customtkinter)
@@ -9,7 +9,7 @@ Para utilizar o aplicativo, siga os passos abaixo:
 
 1. Baixe a linguagem de programação Python através da página oficial: [https://www.python.org/](https://www.python.org/).
 2. Instale a biblioteca não nativa `customtkinter` utilizando o terminal do Python (CMD -> "python" -> "pip install customtkinter").
-3. Execute o arquivo `app.py`.
+3. Execute o arquivo bat `app.bat`.
 4. Após a inicialização da interface gráfica (UI), insira o IP do servidor e o seu nickname nos campos correspondentes.
 5. Parabéns! Você concluiu o processo.
 
@@ -20,7 +20,7 @@ Para utilizar o aplicativo, siga os passos abaixo:
 Para rodar o servidor por si mesmo, siga os passos abaixo:
 
 1. Transfira a pasta `manual_sv_folder` para fora da pasta mãe e abra-a. **Não remova o conteúdo de dentro.**
-2. Execute o arquivo Python `__init__.py`.
+2. Execute o arquivo bat `run_server.bat`.
 
 
 ### Créditos
@@ -41,7 +41,7 @@ To use the application, follow the steps below:
 
 1. Download the Python programming language from the official website: [https://www.python.org/](https://www.python.org/).
 2. Install the non-native Python library `customtkinter` using the Python terminal (CMD -> "python" -> "pip install customtkinter").
-3. Run the `app.py` file.
+3. Run the `app.bat` file.
 4. After the graphical user interface (UI) initializes, enter the server IP and your nickname in the appropriate fields.
 5. Congratulations! You have completed the process.
 

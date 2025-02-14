@@ -84,16 +84,30 @@ class App(ctk.CTk):
         
         self.open_chat_frame()
         self.open_chat_users()
-    
+        self.open_user_info()
+
+    def open_user_info(self):
+        self.frame_users = ctk.CTkFrame(self.frame_content, fg_color="#393053")
+        self.frame_users.grid(row=0,column=1)
+
     def open_chat_frame(self):
         self.chat_frame = ctk.CTkFrame(self.frame_content, fg_color="#393053")
-        self.chat_frame.grid(row=0, column=0, pady=self.window_height // 7, sticky="nsew")
+        self.chat_frame.grid(row=0, column=0, pady=self.window_height // 7, padx=(20,0), sticky="nsew")
 
         self.chat_frame.grid_columnconfigure(0, weight=4)
         self.chat_frame.grid_columnconfigure(1, weight=1)
 
+        # Label para exibir o nome do usuário
+        self.user_label = ctk.CTkLabel(
+            self.chat_frame,
+            text=f"{self.username} {self.rank}",
+            font=("Terminal", 16),
+            text_color="white"
+        )
+        self.user_label.grid(row=0, column=0, pady=10, padx=10, sticky="nw")
+
         self.chat_scrollable_frame = ctk.CTkScrollableFrame(self.chat_frame, fg_color="#393053", height=self.window_height, width=self.window_width)
-        self.chat_scrollable_frame.grid(row=0, column=0, columnspan=2, pady=15, padx=15, sticky="nsew")
+        self.chat_scrollable_frame.grid(row=1, column=0, columnspan=2, pady=15, padx=15, sticky="nsew")
 
         self.chat_label = ctk.CTkLabel(
             self.chat_scrollable_frame,
@@ -105,7 +119,7 @@ class App(ctk.CTk):
             text_color="white",
             wraplength=self.window_width // 2 - 30
         )
-        self.chat_label.pack(expand=True, fill="both")
+        self.chat_label.pack(expand=True, fill="both", padx=10, pady=10)
 
         self.chat_entry = ctk.CTkEntry(
             self.chat_frame,
@@ -114,7 +128,7 @@ class App(ctk.CTk):
             fg_color="white",
             font=("Terminal", 16)
         )
-        self.chat_entry.grid(row=1, column=0, pady=(5, 15), padx=(15, 5), sticky="nsew")
+        self.chat_entry.grid(row=2, column=0, pady=(5, 15), padx=(15, 5), sticky="nsew")
 
         self.chat_entry.bind("<Return>", lambda event: self.send_message())
 
@@ -125,13 +139,13 @@ class App(ctk.CTk):
             font=("Terminal", 16),
             fg_color="#18122B"
         )
-        self.send_button.grid(row=1, column=1, pady=(5, 15), padx=(5, 15), sticky="nsew")
+        self.send_button.grid(row=2, column=1, pady=(5, 15), padx=(5, 15), sticky="nsew")
 
         self.deiconify()
 
     def open_chat_users(self):
         self.users_frame = ctk.CTkFrame(self.frame_content, fg_color="#393053")
-        self.users_frame.grid(row=0, column=1, pady=self.window_height // 7, padx=(10, 0), sticky="nsew")
+        self.users_frame.grid(row=1, column=1, pady=self.window_height // 7, padx=(10, 0), sticky="nsew")
 
         self.users_label = ctk.CTkLabel(
             self.users_frame,
@@ -141,21 +155,28 @@ class App(ctk.CTk):
         )
         self.users_label.pack(pady=10)
 
+        # Cria o users_scrollable_frame
         self.users_scrollable_frame = ctk.CTkScrollableFrame(self.users_frame, fg_color="#393053")
-        self.users_scrollable_frame.pack(expand=True, fill="both", padx=10, pady=10)
+        self.users_scrollable_frame.pack(padx=10, pady=10)
 
         # Inicializa a lista de usuários
         self.update_user_list(self.user_list)
 
     def update_user_list(self, users):
+        if not hasattr(self, 'users_scrollable_frame'):
+            print("users_scrollable_frame não foi criado ainda.")
+            return
+
+        # Limpa o frame atual
         for widget in self.users_scrollable_frame.winfo_children():
             widget.destroy()
 
+        # Adiciona os usuários à lista
         for user in users:
             user_label = ctk.CTkLabel(
                 self.users_scrollable_frame,
                 text=user,
-                font=("Terminal", 14),
+                font=("Terminal", 15),
                 text_color="white"
             )
             user_label.pack(pady=5)
@@ -181,7 +202,11 @@ class App(ctk.CTk):
             thread.daemon = True  
             thread.start()
 
+            # Abre o frame de conteúdo
             self.open_content_frame()
+
+            # Atualiza a lista de usuários após o frame ser criado
+            self.update_user_list(self.user_list)
             
         except Exception as e:  
             print(f"Erro ao conectar: {e}")
@@ -196,6 +221,10 @@ class App(ctk.CTk):
             try:
                 msg = self.client.recv(2048).decode('utf-8')
                 if msg:
+                    # Verifica se o chat_label já foi criado
+                    if not hasattr(self, 'chat_label'):
+                        continue  # Aguarda até que o chat_label seja criado
+
                     if msg == "!clear":
                         self.chat_label.configure(text="")  
                     elif msg.startswith("!kick"):
@@ -213,7 +242,7 @@ class App(ctk.CTk):
                         self.client.close()
                         self.destroy()
                         sys.exit()
-                    elif msg.startswith("!users:"):
+                    elif msg.startswith("!users"):
                         # Atualiza a lista de usuários
                         users = msg.split(":")[1].split(",")
                         self.user_list = users
@@ -226,14 +255,24 @@ class App(ctk.CTk):
                         if new_user not in self.user_list:
                             self.user_list.append(new_user)
                             self.update_user_list(self.user_list)
-                    else:
-                        if " [ADMIN]" in msg:
+                    elif msg.startswith("!leave:"):
+                        # Usuário saiu do chat
+                        left_user = msg.split(":")[1]
+                        self.chat_label.configure(text=self.chat_label.cget("text") + f"\n**{left_user} saiu do chat**\n", text_color="white")
+                        if left_user in self.user_list:
+                            self.user_list.remove(left_user)
+                            self.update_user_list(self.user_list)
+                    elif " [ADMIN]" in msg:
+                        if ":" in msg:
                             username_part, message_part = msg.split(":", 1)
-                            username, rank = username_part.split(" [ADMIN]")
-                            formatted_message = f"{username} [ADMIN]:{message_part}"
-                            self.chat_label.configure(text=self.chat_label.cget("text") + f"\n{formatted_message}\n", text_color="red")
+                            if " [ADMIN]" in username_part:
+                                username, rank = username_part.split(" [ADMIN]")
+                                formatted_message = f"{username} [ADMIN]:{message_part}"
+                                self.chat_label.configure(text=self.chat_label.cget("text") + f"\n{formatted_message}\n", text_color="red")
                         else:
                             self.chat_label.configure(text=self.chat_label.cget("text") + f"\n{msg}\n", text_color="white")
+                    else:
+                        self.chat_label.configure(text=self.chat_label.cget("text") + f"\n{msg}\n", text_color="white")
                 else:
                     break  
             except Exception as e:
@@ -267,11 +306,23 @@ class App(ctk.CTk):
                 return "Erro ao obter lista de usuários."
 
     def handle_command(self, command):
-        if command == "!cls":
+        if command.startswith("!help"):
+            if self.is_admin():
+                self.chat_label.configure(text=self.chat_label.cget("text") + "\nComandos:\n\n[ADMIN]:\n\n!kick <username>\n!ban <IP>\n!unbanip <IP>\n!cls\n\n[USERS]\n\n!help\n")
+        elif command.startswith("!fenix"):
+            self.configure(fg_color="#09122C")
+            self.chat_frame.configure(fg_color="#BE3144")
+            self.chat_scrollable_frame.configure(fg_color="#872341")
+            self.frame_content.configure(fg_color="#E17564")
+            self.frame_users.configure(fg_color="#BE3144")
+            self.users_frame.configure(fg_color="#BE3144")
+            self.chat_label.configure(text=self.chat_label.cget("text") + f"{self.username} - das cinzas, renasço.\n")
+        elif command == "!cls":
             if self.is_admin():
                 self.client.send("!cls".encode('utf-8'))
             else:
                 self.chat_label.configure(text=self.chat_label.cget("text") + "Você não tem permissão para usar este comando.\n")
+        
         elif command.startswith("!kick"):
             if self.is_admin():
                 parts = command.split(" ")
@@ -282,6 +333,7 @@ class App(ctk.CTk):
                     self.chat_label.configure(text=self.chat_label.cget("text") + "Uso: !kick <username>\n")
             else:
                 self.chat_label.configure(text=self.chat_label.cget("text") + "Você não tem permissão para usar este comando.\n")
+
         elif command.startswith("!ban"):
             if self.is_admin():
                 parts = command.split(" ")
@@ -324,10 +376,8 @@ class App(ctk.CTk):
             print(f"Erro ao obter o IP: {e}")
             return None
 
+
 if __name__ == "__main__":
-    app = App() 
-    app.run()
     print("running as principal")
-else:
-    app = App()
-    app.run()
+app = App() 
+app.run()
